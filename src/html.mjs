@@ -74,14 +74,28 @@ export function linkURL(value,base) {
   try { const url=new URL(value,base);return ['http:','https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null; }
   catch { return null; }
 }
+function codeFence(raw,minimum=1) {
+  let length=minimum;
+  for(const run of raw.matchAll(/`+/g))length=Math.max(length,run[0].length+1);
+  return '`'.repeat(length);
+}
 function markdown(node,base) {
   if(typeof node==='string')return clean(node).replace(/\s+/g,' ').replace(/([\\`*_[\]])/g,'\\$1');
   const {tag,attrs}=node;
   if(ignored.has(tag) || ['nav','header','footer','aside','form','button','input'].includes(tag) || attrs['aria-hidden']==='true' || Object.hasOwn(attrs,'hidden'))return '';
   if(tag==='pre') {
     const raw=clean(text(node)).replace(/^\n|\n$/g,'');
-    const runs=raw.match(/`+/g)??[];const fence='`'.repeat(Math.max(3,...runs.map(r=>r.length+1)));
+    const fence=codeFence(raw,3);
     return `\n\n${fence}\n${raw}\n${fence}\n\n`;
+  }
+  if(tag==='code') {
+    const raw=clean(text(node)).replace(/\r\n?|\n/g,' ');
+    if(!raw)return '';
+    const fence=codeFence(raw);
+    // CommonMark strips one boundary space only when both ends have spaces
+    // and the content is not all spaces. Padding also separates literal ticks.
+    const pad=raw.startsWith('`') || raw.endsWith('`') || (raw.startsWith(' ') && raw.endsWith(' ') && /[^ ]/.test(raw)) ? ' ' : '';
+    return fence+pad+raw+pad+fence;
   }
   const inner=node.children.map(n=>markdown(n,base)).join('');
   if(/^h[1-6]$/.test(tag))return `\n\n${'#'.repeat(Number(tag[1]))} ${inner.trim()}\n\n`;
@@ -89,7 +103,6 @@ function markdown(node,base) {
   if(tag==='hr')return '\n\n---\n\n';
   if(tag==='a') { const url=linkURL(attrs.href??'',base);return url && attrs.href ? `[${inner.trim()||url}](${url.replace(/\(/g,'%28').replace(/\)/g,'%29')})` : inner; }
   if(tag==='img')return attrs.alt ? ` [Image: ${clean(attrs.alt)}] ` : '';
-  if(tag==='code')return '`'+inner.trim().replace(/`/g,'\\`')+'`';
   if(tag==='strong' || tag==='b')return `**${inner.trim()}**`;
   if(tag==='em' || tag==='i')return `*${inner.trim()}*`;
   if(tag==='li')return `\n- ${inner.trim()}\n`;

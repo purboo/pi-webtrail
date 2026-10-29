@@ -90,6 +90,25 @@ test('inert extraction keeps code, links, entities and main content without scri
   assert.doesNotThrow(()=>parseHTML('<main title="'+ 'x'.repeat(100000)));
 });
 
+test('inline technical code preserves punctuation, paths, backticks and boundary spaces',()=>{
+  const examples=[
+    ['my_var','`my_var`'],
+    ['arr[0]','`arr[0]`'],
+    [String.raw`C:\Users\name`,'`C:\\Users\\name`'],
+    ['**bold**','`**bold**`'],
+    ['a`b','``a`b``'],
+    ['`','`` ` ``'],
+    ['foo``bar','```foo``bar```'],
+    [' both spaces ','`  both spaces  `'],
+    [' leading','` leading`'],
+    ['   ','`   `'],
+    ['line\nbreak','`line break`'],
+    ['&lt;a&gt;','`<a>`'],
+  ];
+  for(const [html,expected] of examples)assert.equal(extractPage(`<main><code>${html}</code></main>`,'https://example.com').content,expected,html);
+  assert.equal(extractPage('<main><code>my_var</code> <code>arr[0]</code></main>','https://example.com').content,'`my_var` `arr[0]`');
+});
+
 test('search parsers return actual source URLs, omit ads and identify challenge pages',()=>{
   const results=parseSearch(ddg,'duckduckgo');
   assert.equal(results[0].url,'https://www.typescriptlang.org/docs/');assert.equal(results[0].snippet,'Official documentation.');
