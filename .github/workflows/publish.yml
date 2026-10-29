@@ -1,0 +1,55 @@
+name: Publish
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        default: v0.1.0
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: npm-publish-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'purboo/pi-webtrail'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Verify version tag
+        run: |
+          node --input-type=module - <<'JS'
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const tag=process.env.RELEASE_TAG;
+          const pkg=JSON.parse(readFileSync('package.json','utf8'));
+          if(!/^v\d+\.\d+\.\d+$/.test(tag) || tag!==`v${pkg.version}` || pkg.name!=='pi-webtrail') {
+            throw new Error('Choose a stable version tag matching pi-webtrail package.json');
+          }
+          const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+          const tagged=execFileSync('git',['rev-parse',`refs/tags/${tag}^{commit}`],{encoding:'utf8'}).trim();
+          if(head!==tagged)throw new Error('Checked-out commit does not match the requested tag');
+          JS
+      - run: npm ci --ignore-scripts --omit=peer
+      - run: npm test
+      - run: npm audit --omit=dev --omit=peer
+      - name: Publish using npm trusted publishing
+        run: npm publish --access public --provenance --ignore-scripts
