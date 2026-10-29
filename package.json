@@ -1,0 +1,19 @@
+{
+  "name": "pi-webtrail",
+  "version": "0.1.0",
+  "description": "Free web search and readable local source snapshots for Pi. Zero runtime npm dependencies, HTTP/SOCKS proxies, optional Exa and Google.",
+  "type": "module",
+  "license": "MIT",
+  "author": "purboo",
+  "repository": { "type": "git", "url": "git+https://github.com/purboo/pi-webtrail.git" },
+  "homepage": "https://github.com/purboo/pi-webtrail#readme",
+  "bugs": { "url": "https://github.com/purboo/pi-webtrail/issues" },
+  "engines": { "node": ">=22.19.0" },
+  "keywords": ["pi-package", "web-search", "proxy", "google", "duckduckgo", "exa", "markdown"],
+  "files": ["index.ts", "src/", "README.md", "README.zh-CN.md", "LICENSE"],
+  "scripts": { "test": "node --test", "check": "node --test" },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-ai": "*" },
+  "peerDependenciesMeta": { "@earendil-works/pi-coding-agent": { "optional": true }, "@earendil-works/pi-ai": { "optional": true } },
+  "pi": { "extensions": ["./index.ts"] },
+  "publishConfig": { "access": "public" }
+}
